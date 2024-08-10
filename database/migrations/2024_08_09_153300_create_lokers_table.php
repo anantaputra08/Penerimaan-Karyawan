@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('department_id')->constrained()->onDelete('cascade');
             $table->foreignId('position_id')->constrained()->onDelete('cascade');
             $table->integer('max_applicants');
-            $table->decimal('salary', 8, 2);
+            $table->decimal('salary', 10, 2);
             $table->text('description');
             $table->string('photo')->nullable();
             $table->string('statement_letter')->nullable();

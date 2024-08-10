@@ -26,7 +26,11 @@
         <div class="form-group">
             <label for="position">Position</label>
             <select class="form-control" id="position" name="position_id" required>
-                <!-- Positions will be loaded via JavaScript -->
+                @foreach ($positions as $position)
+                    <option value="{{ $position->id }}" {{ $position->id == $loker->position_id ? 'selected' : '' }}>
+                        {{ $position->name }}
+                    </option>
+                @endforeach
             </select>
         </div>
 
@@ -63,22 +67,4 @@
 
         <button type="submit" class="btn btn-primary">Update</button>
     </form>
-@endsection
-
-@section('scripts')
-    <script>
-        document.getElementById('department').addEventListener('change', function () {
-            var departmentId = this.value;
-            var positionSelect = document.getElementById('position');
-
-            fetch(`/positions?department_id=${departmentId}`)
-                .then(response => response.json())
-                .then(data => {
-                    positionSelect.innerHTML = '<option value="">Select Position</option>';
-                    data.forEach(position => {
-                        positionSelect.innerHTML += `<option value="${position.id}" ${position.id == '{{ $loker->position_id }}' ? 'selected' : ''}>${position.name}</option>`;
-                    });
-                });
-        }).dispatchEvent(new Event('change'));
-    </script>
 @endsection

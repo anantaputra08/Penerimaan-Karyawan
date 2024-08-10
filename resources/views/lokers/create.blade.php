@@ -25,6 +25,9 @@
         <label for="position">Position</label>
         <select class="form-control" id="position" name="position_id" required>
             <option value="">Select Position</option>
+            @foreach ($positions as $position)
+            <option value="{{ $position->id }}">{{ $position->name }}</option>
+            @endforeach
         </select>
     </div>
 
@@ -55,26 +58,4 @@
 
     <button type="submit" class="btn btn-primary">Save</button>
 </form>
-@endsection
-
-@section('scripts')
-<script>
-    document.getElementById('department').addEventListener('change', function() {
-        var departmentId = this.value;
-        var positionSelect = document.getElementById('position');
-
-        console.log(`Fetching positions for department ID: ${departmentId}`);
-
-        fetch(`{{ route('positions.byDepartment') }}?department_id=${departmentId}`)
-            .then(response => response.json())
-            .then(data => {
-                console.log('Positions data:', data);
-                positionSelect.innerHTML = '<option value="">Select Position</option>';
-                data.forEach(position => {
-                    positionSelect.innerHTML += `<option value="${position.id}">${position.name}</option>`;
-                });
-            })
-            .catch(error => console.error('Error fetching positions:', error));
-    });
-</script>
 @endsection

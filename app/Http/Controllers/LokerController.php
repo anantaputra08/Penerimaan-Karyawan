@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Loker;
 use App\Models\Department;
 use App\Models\Position;
+use App\Models\JobApplication;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -16,10 +17,29 @@ class LokerController extends Controller
         return view('lokers.index', compact('lokers'));
     }
 
+    public function opening()
+    {
+        $lokers = Loker::with(['department', 'position'])
+            ->get()
+            ->map(function ($loker) {
+                $loker->current_applicants_count = $loker->current_applicants_count;
+                return $loker;
+            });
+
+        return view('lokersOpening', compact('lokers'));
+    }
+
+    public function show($id)
+    {
+        $loker = Loker::with(['department', 'position'])->findOrFail($id);
+        return view('lokersDetail', compact('loker'));
+    }
+
     public function create()
     {
         $departments = Department::all();
-        return view('lokers.create', compact('departments'));
+        $positions = Position::all(); // Mengambil semua posisi
+        return view('lokers.create', compact('departments', 'positions'));
     }
 
     public function store(Request $request)
@@ -38,11 +58,11 @@ class LokerController extends Controller
         $data = $request->except(['photo', 'statement_letter']);
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('photos');
+            $data['photo'] = $request->file('photo')->store('photos', 'public');
         }
 
         if ($request->hasFile('statement_letter')) {
-            $data['statement_letter'] = $request->file('statement_letter')->store('statements');
+            $data['statement_letter'] = $request->file('statement_letter')->store('statements', 'public');
         }
 
         Loker::create($data);
@@ -53,7 +73,7 @@ class LokerController extends Controller
     public function edit(Loker $loker)
     {
         $departments = Department::all();
-        $positions = Position::where('department_id', $loker->department_id)->get();
+        $positions = Position::all();
         return view('lokers.edit', compact('loker', 'departments', 'positions'));
     }
 
@@ -74,16 +94,16 @@ class LokerController extends Controller
 
         if ($request->hasFile('photo')) {
             if ($loker->photo) {
-                Storage::delete($loker->photo);
+                Storage::delete('public/' . $loker->photo);
             }
-            $data['photo'] = $request->file('photo')->store('photos');
+            $data['photo'] = $request->file('photo')->store('photos', 'public');
         }
 
         if ($request->hasFile('statement_letter')) {
             if ($loker->statement_letter) {
-                Storage::delete($loker->statement_letter);
+                Storage::delete('public/' . $loker->statement_letter);
             }
-            $data['statement_letter'] = $request->file('statement_letter')->store('statements');
+            $data['statement_letter'] = $request->file('statement_letter')->store('statements', 'public');
         }
 
         $loker->update($data);
@@ -94,11 +114,11 @@ class LokerController extends Controller
     public function destroy(Loker $loker)
     {
         if ($loker->photo) {
-            Storage::delete($loker->photo);
+            Storage::delete('public/' . $loker->photo);
         }
 
         if ($loker->statement_letter) {
-            Storage::delete($loker->statement_letter);
+            Storage::delete('public/' . $loker->statement_letter);
         }
 
         $loker->delete();
@@ -106,13 +126,57 @@ class LokerController extends Controller
         return redirect()->route('lokers.index')->with('success', 'Loker deleted successfully.');
     }
 
-    public function getPositions(Request $request)
+    public function showApplyForm($id)
     {
-        $departmentId = $request->input('department_id');
+        $loker = Loker::findOrFail($id);
+        return view('applyForm', compact('loker'));
+    }
 
-        // Check if departmentId is present and valid
-        if (is_null($departmentId)) {
-            return response()->json([], 400); // Bad request if departmentId is missing
+    public function submitApplication(Request $request, $id)
+    {
+        $request->validate([
+            'application_file' => 'required|mimes:pdf|max:2048', // Max 2MB
+        ]);
+
+        $loker = Loker::findOrFail($id);
+
+        $alreadyApplied = JobApplication::where('user_id', auth()->id())
+            ->where('lokers_id', $loker->id)
+            ->exists();
+
+        if ($alreadyApplied) {
+            return redirect()->route('lokers.show', $id)->with('error', 'You have already applied for this job.');
+        }
+
+        $applicationCount = JobApplication::where('lokers_id', $loker->id)->count();
+
+        if ($applicationCount >= $loker->max_applicants) {
+            return redirect()->route('lokers.show', $id)->with('error', 'This job vacancy is already full.');
+        }
+
+        if ($request->hasFile('application_file')) {
+            $file = $request->file('application_file');
+            $fileName = time() . '_' . $file->getClientOriginalName();
+            $filePath = $file->storeAs('applications', $fileName, 'public');
+        }
+
+        JobApplication::create([
+            'user_id' => auth()->id(),
+            'lokers_id' => $loker->id,
+            'applied_at' => now(),
+            'application_file' => $filePath ?? null,
+        ]);
+
+        return redirect()->route('lokers.show', $id)->with('success', 'Your application has been submitted successfully.');
+    }
+
+
+    public function getPositionsByDepartment(Request $request)
+    {
+        $departmentId = $request->query('department_id');
+
+        if (!$departmentId) {
+            return response()->json([], 400);
         }
 
         $positions = Position::where('department_id', $departmentId)->get();

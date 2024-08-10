@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Position;
 use App\Models\Department;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PositionController extends Controller
 {
@@ -18,6 +19,11 @@ class PositionController extends Controller
     {
         $departments = Department::all();
         return view('positions.create', compact('departments'));
+    }
+    public function show($id)
+    {
+        $position = Position::findOrFail($id);
+        return view('positions.show', compact('position'));
     }
 
     public function store(Request $request)

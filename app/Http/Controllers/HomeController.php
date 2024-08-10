@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\JobApplication;
 use App\Models\User;
+use App\Models\Loker;
 use Illuminate\Http\Request;
 
 class HomeController extends Controller
@@ -23,14 +25,34 @@ class HomeController extends Controller
      * @return \Illuminate\Contracts\Support\Renderable
      */
     public function index()
-    {
-        $users = User::count();
+{
+    $users = User::count();
 
-        $widget = [
-            'users' => $users,
-            //...
-        ];
+    // Number of available lokers
+    $availableLokers = Loker::where('max_applicants', '>', function($query) {
+        $query->selectRaw('COUNT(*)')
+            ->from('job_applications')
+            ->whereColumn('job_applications.lokers_id', 'lokers.id');
+    })->count();
 
-        return view('home', compact('widget'));
-    }
+    // Number of lokers with maximum applicants
+    $maxApplicantsLokers = Loker::whereHas('jobApplications', function($query) {
+        $query->selectRaw('COUNT(*)')
+            ->from('job_applications')
+            ->groupBy('lokers_id')
+            ->havingRaw('COUNT(*) >= lokers.max_applicants');
+    })->count();
+
+    // Count of job applications with pending status
+    $pendingJobApplications = JobApplication::where('status', 'pending')->count();
+
+    $widget = [
+        'users' => $users,
+        'availableLokers' => $availableLokers,
+        'maxApplicantsLokers' => $maxApplicantsLokers,
+        'pendingJobApplications' => $pendingJobApplications,
+    ];
+
+    return view('home', compact('widget'));
+}
 }

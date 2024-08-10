@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
@@ -40,7 +41,12 @@ class LoginController extends Controller
 
     protected function redirectTo()
     {
-        session()->flash('success', 'You are logged in!');
-        return $this->redirectTo;
+        if (Auth::user()->is_admin) {
+            session()->flash('success', 'Welcome, Admin!');
+            return '/home'; // Create this route for the admin dashboard
+        } else {
+            session()->flash('success', 'You are logged in!');
+            return '/home';
+        }
     }
 }

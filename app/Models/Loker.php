@@ -34,4 +34,14 @@ class Loker extends Model
     {
         return $this->belongsTo(Position::class);
     }
+
+    public function jobApplications()
+    {
+        return $this->hasMany(JobApplication::class, 'lokers_id');
+    }
+
+    public function getCurrentApplicantsCountAttribute()
+    {
+        return $this->hasMany(JobApplication::class, 'lokers_id')->count();
+    }
 }

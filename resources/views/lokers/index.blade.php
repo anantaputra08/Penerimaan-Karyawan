@@ -34,7 +34,7 @@
                     <td>{{ $loker->description }}</td>
                     <td>
                         <a href="{{ route('lokers.edit', $loker->id) }}" class="btn btn-warning btn-sm">Edit</a>
-                        <form action="{{ route('lokers.destroy', $loker->id) }}" method="POST" style="display:inline;">
+                        <form action="{{ route('lokers.destroy', $loker->id) }}" method="POST" style="display:inline;" onsubmit="return confirmDelete()">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -44,4 +44,9 @@
             @endforeach
         </tbody>
     </table>
+    <script>
+        function confirmDelete() {
+            return confirm('Are you sure you want to delete this loker?\nIni akan menyebabkan data pada calon karyawan juga hilang');
+        }
+    </script>
 @endsection
